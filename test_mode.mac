@@ -1,0 +1,17 @@
+# test_mode.mac - 测试模式：固定伽马源
+/run/initialize
+
+# 启用测试模式
+/gun/testMode true
+
+# 设置输出文件
+/analysis/setFileName test_spectrum
+
+# 最小化输出
+/process/em/verbose 0
+/process/verbose 0
+/tracking/verbose 0
+
+# 运行10000个事件来获得清晰的能谱
+/run/printProgress 10000
+/run/beamOn 100000

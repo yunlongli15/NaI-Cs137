@@ -1,0 +1,32 @@
+# vis_test.mac - 测试模式可视化
+/vis/open OGL 600x600-0+0
+/vis/viewer/set/autoRefresh false
+
+# 绘制几何
+/vis/drawVolume
+
+# 设置视图
+/vis/viewer/set/viewpointThetaPhi 90. 0.
+/vis/viewer/zoom 2.0
+
+# 设置颜色
+/vis/geometry/set/colour World 0 0.9 0.9 0.9 0.3
+/vis/geometry/set/colour NaICan 0 0.5 0.5 0.5 1.0
+/vis/geometry/set/colour NaICrystal 0 1.0 0.0 0.0 1.0
+
+# 添加轨迹
+/vis/scene/add/trajectories smooth
+/vis/modeling/trajectories/create/drawByParticleID
+/vis/modeling/trajectories/drawByParticleID-0/set gamma green
+
+# 坐标轴
+/vis/scene/add/axes 0 0 0 0.5 m
+
+/vis/viewer/set/autoRefresh true
+
+# 初始化运行
+/run/initialize
+/gun/testMode true
+
+# 运行少量事件用于可视化
+/run/beamOn 10
