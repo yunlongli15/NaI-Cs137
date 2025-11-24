@@ -44,9 +44,6 @@ set(SOURCES
 # relies on these scripts being in the current working directory.
 #
 set(EXAMPLEB1_SCRIPTS
-  init_vis.mac
-  run.mac
-  vis.mac
   test_mode.mac
   activity_mode.mac
   normal_mode.mac

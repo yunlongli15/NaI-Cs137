@@ -37,12 +37,12 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
         }
     }
     
-    // 可选：记录粒子信息用于调试
+    // 修改：更保守的能量截止，避免低能粒子引起可视化问题
     G4Track* track = step->GetTrack();
     G4double energy = track->GetKineticEnergy();
     
-    // 如果能量很低，停止跟踪以节省计算时间
-    if (energy < 1.0 * keV) {
+    // 提高能量截止值，避免低能电子引起问题
+    if (energy < 10.0 * keV) {
         track->SetTrackStatus(fStopAndKill);
     }
 }

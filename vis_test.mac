@@ -1,32 +1,41 @@
-# vis_test.mac - 测试模式可视化
-/vis/open OGL 600x600-0+0
+# accumulate_tracks.mac - 累积显示轨迹（修正版）
+/vis/open OGL
+/vis/viewer/reset
 /vis/viewer/set/autoRefresh false
 
-# 绘制几何
+# 基本设置
+/vis/viewer/set/viewpointThetaPhi 90 0
+/vis/viewer/zoom 1.5
 /vis/drawVolume
 
-# 设置视图
-/vis/viewer/set/viewpointThetaPhi 90. 0.
-/vis/viewer/zoom 2.0
+# 颜色设置
+/vis/geometry/set/colour World 0 0.8 0.8 0.8 0.2
+/vis/geometry/set/colour NaICan 0 0.3 0.3 0.3 0.6  
+/vis/geometry/set/colour NaICrystal 0 1.0 0.0 0.0 0.5
 
-# 设置颜色
-/vis/geometry/set/colour World 0 0.9 0.9 0.9 0.3
-/vis/geometry/set/colour NaICan 0 0.5 0.5 0.5 1.0
-/vis/geometry/set/colour NaICrystal 0 1.0 0.0 0.0 1.0
-
-# 添加轨迹
+# 关键：启用轨迹存储和累积
+/tracking/storeTrajectory 1
 /vis/scene/add/trajectories smooth
+
+# 关键命令：设置事件累积（而不是替换）
+/vis/scene/endOfEventAction accumulate
+/vis/scene/endOfRunAction refresh
+
+# 粒子着色
 /vis/modeling/trajectories/create/drawByParticleID
 /vis/modeling/trajectories/drawByParticleID-0/set gamma green
-
-# 坐标轴
-/vis/scene/add/axes 0 0 0 0.5 m
+/vis/modeling/trajectories/drawByParticleID-0/set e- blue
+/vis/modeling/trajectories/drawByParticleID-0/set e+ magenta
 
 /vis/viewer/set/autoRefresh true
+/vis/viewer/refresh
 
-# 初始化运行
 /run/initialize
-/gun/testMode true
+/gun/testMode false
+/gun/activityMode false
 
-# 运行少量事件用于可视化
-/run/beamOn 10
+# 运行事件 - 现在会累积显示
+/run/beamOn 100
+
+# 最终刷新
+/vis/viewer/refresh
