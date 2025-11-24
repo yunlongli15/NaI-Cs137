@@ -1,8 +1,8 @@
-# normal_mode.mac - 正常模式
 /run/initialize
 
 # 启用测试模式
 /gun/testMode false
+/gun/activityMode false
 
 # 设置输出文件
 /analysis/setFileName test_spectrum
@@ -13,5 +13,5 @@
 /tracking/verbose 0
 
 # 运行10000个事件来获得清晰的能谱
-/run/printProgress 1000000
-/run/beamOn 10000000
+/run/printProgress 100000
+/run/beamOn 1000000

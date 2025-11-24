@@ -4,11 +4,14 @@
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
 #include "Randomize.hh"
+#include "G4RunManager.hh"
 
 PrimaryGeneratorAction::PrimaryGeneratorAction()
  : cs137Activity(1.0),
-   roomVolume(120.0),
-   testMode(false)  // 默认关闭测试模式
+   roomVolume(120.0),  // 8×5×3 = 120 m³
+   testMode(false),
+   activityMode(false),  // 默认关闭活度模式
+   simulationTime(1.0)   // 默认1秒
 {
     particleGun = new G4ParticleGun(1);
     fMessenger = new PrimaryGeneratorMessenger(this);
@@ -23,9 +26,11 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
 {
     if (testMode) {
-        GenerateTestGamma(event);  // 测试模式：固定位置
+        GenerateTestGamma(event);      // 测试模式：固定位置
+    } else if (activityMode) {
+        GenerateActivityModeGamma(event); // 活度模式：基于活度和时间
     } else {
-        GenerateCs137Decay(event); // 正常模式：随机位置
+        GenerateCs137Decay(event);     // 正常模式：随机位置
     }
 }
 
@@ -59,7 +64,7 @@ void PrimaryGeneratorAction::GenerateGamma662(G4Event* event)
     particleGun->GeneratePrimaryVertex(event);
 }
 
-// 测试模式：固定位置直接射向探测器
+// 测试模式：固定位置直接射向探测器（保持不变）
 void PrimaryGeneratorAction::GenerateTestGamma(G4Event* event)
 {
     G4ParticleDefinition* gamma = G4ParticleTable::GetParticleTable()->FindParticle("gamma");
@@ -85,6 +90,69 @@ void PrimaryGeneratorAction::GenerateTestGamma(G4Event* event)
     }
 }
 
+// 新增：活度模式生成函数
+void PrimaryGeneratorAction::GenerateActivityModeGamma(G4Event* event)
+{
+    G4ParticleDefinition* gamma = G4ParticleTable::GetParticleTable()->FindParticle("gamma");
+    
+    // 活度模式：在房间内随机位置（与正常模式相同的位置分布）
+    G4double x = (G4UniformRand() - 0.5) * 8.0 * m;
+    G4double y = (G4UniformRand() - 0.5) * 5.0 * m; 
+    G4double z = (G4UniformRand() - 0.5) * 3.0 * m;
+    
+    // 随机方向（与正常模式相同的方向分布）
+    G4double phi = 2.0 * M_PI * G4UniformRand();
+    G4double cosTheta = 2.0 * G4UniformRand() - 1.0;
+    G4double sinTheta = std::sqrt(1.0 - cosTheta * cosTheta);
+    
+    G4ThreeVector direction(sinTheta * std::cos(phi), 
+                           sinTheta * std::sin(phi), 
+                           cosTheta);
+    
+    particleGun->SetParticleDefinition(gamma);
+    particleGun->SetParticleEnergy(662 * keV);
+    particleGun->SetParticlePosition(G4ThreeVector(x, y, z));
+    particleGun->SetParticleMomentumDirection(direction);
+    particleGun->GeneratePrimaryVertex(event);
+    
+    // 在活度模式下输出信息
+    if (event->GetEventID() % 10000 == 0) {
+        G4cout << "Activity mode - Event " << event->GetEventID() 
+               << " at (" << x/m << ", " << y/m << ", " << z/m << ") m" << G4endl;
+    }
+}
+
+// 新增：计算活度模式需要的事件数
+G4int PrimaryGeneratorAction::GetEventsForActivityMode()
+{
+    if (!activityMode) {
+        return 0;
+    }
+    
+    G4double totalActivity = cs137Activity * roomVolume;  // 总活度 (Bq)
+    G4double meanEvents = totalActivity * simulationTime; // 平均事件数
+    
+    // 使用泊松分布生成随机事件数
+    G4int nEvents = CLHEP::RandPoisson::shoot(meanEvents);
+    
+    // 确保至少有一个事件
+    if (nEvents <= 0) {
+        nEvents = 1;
+    }
+    
+    G4cout << "=== ACTIVITY MODE CALCULATION ===" << G4endl;
+    G4cout << "Activity concentration: " << cs137Activity << " Bq/m³" << G4endl;
+    G4cout << "Room volume: " << roomVolume << " m³" << G4endl;
+    G4cout << "Total activity: " << totalActivity << " Bq" << G4endl;
+    G4cout << "Simulation time: " << simulationTime << " s" << G4endl;
+    G4cout << "Mean expected events: " << meanEvents << G4endl;
+    G4cout << "Poisson sampled events: " << nEvents << G4endl;
+    G4cout << "Event rate: " << nEvents/simulationTime << " events/s" << G4endl;
+    G4cout << "==================================" << G4endl;
+    
+    return nEvents;
+}
+
 void PrimaryGeneratorAction::SetCs137Activity(G4double activity) 
 { 
     cs137Activity = activity; 
@@ -97,12 +165,36 @@ void PrimaryGeneratorAction::SetTestMode(G4bool mode)
 {
     testMode = mode;
     if (testMode) {
+        activityMode = false;  // 确保互斥
         G4cout << "=== TEST MODE ACTIVATED ===" << G4endl;
         G4cout << "Gamma source fixed at (0, 0, 1) m" << G4endl;
         G4cout << "Directly shooting toward detector" << G4endl;
     } else {
         G4cout << "=== NORMAL MODE ===" << G4endl;
     }
+}
+
+// 新增：设置活度模式
+void PrimaryGeneratorAction::SetActivityMode(G4bool mode)
+{
+    activityMode = mode;
+    if (activityMode) {
+        testMode = false;  // 确保互斥
+        G4cout << "=== ACTIVITY MODE ACTIVATED ===" << G4endl;
+        G4cout << "Gamma sources distributed randomly in room" << G4endl;
+        G4cout << "Event count based on activity and simulation time" << G4endl;
+        G4cout << "Current settings: " << cs137Activity << " Bq/m³, " 
+               << simulationTime << " s" << G4endl;
+    } else {
+        G4cout << "Activity mode deactivated" << G4endl;
+    }
+}
+
+// 新增：设置模拟时间
+void PrimaryGeneratorAction::SetSimulationTime(G4double time)
+{
+    simulationTime = time;
+    G4cout << "Simulation time set to: " << simulationTime << " seconds" << G4endl;
 }
 
 G4double PrimaryGeneratorAction::GetCs137Activity() const 

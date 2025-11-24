@@ -1,3 +1,4 @@
+// 在main.cpp中添加对活度模式的支持
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 #include "G4VisExecutive.hh"
@@ -66,6 +67,15 @@ int main(int argc, char** argv)
         G4String command = "/control/execute ";
         G4String fileName = argv[1];
         UImanager->ApplyCommand(command + fileName);
+        
+        // 如果是活度模式，自动计算事件数
+        G4int eventsForActivityMode = primaryGenerator->GetEventsForActivityMode();
+        if (eventsForActivityMode > 0) {
+            G4String runCommand = "/run/beamOn ";
+            G4String eventNum = G4String(std::to_string(eventsForActivityMode));
+            G4cout << "Activity mode: Running " << eventsForActivityMode << " events" << G4endl;
+            UImanager->ApplyCommand(runCommand + eventNum);
+        }
     }
     
     // 清理

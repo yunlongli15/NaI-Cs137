@@ -4,7 +4,7 @@
 #include "G4UImessenger.hh"
 #include "G4UIdirectory.hh"
 #include "G4UIcmdWithADouble.hh"
-#include "G4UIcmdWithABool.hh"  // 添加布尔命令
+#include "G4UIcmdWithABool.hh"
 #include "globals.hh"
 
 class PrimaryGeneratorAction;
@@ -21,7 +21,9 @@ private:
     PrimaryGeneratorAction* fAction;
     G4UIdirectory* fGunDir;
     G4UIcmdWithADouble* fCs137ActivityCmd;
-    G4UIcmdWithABool* fTestModeCmd;  // 测试模式命令
+    G4UIcmdWithABool* fTestModeCmd;
+    G4UIcmdWithABool* fActivityModeCmd;  // 新增：活度模式命令
+    G4UIcmdWithADouble* fSimulationTimeCmd;  // 新增：模拟时间命令
 };
 
 #endif

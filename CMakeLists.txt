@@ -48,6 +48,8 @@ set(EXAMPLEB1_SCRIPTS
   run.mac
   vis.mac
   test_mode.mac
+  activity_mode.mac
+  normal_mode.mac
   vis_test.mac
   )
 foreach(_script ${EXAMPLEB1_SCRIPTS})
