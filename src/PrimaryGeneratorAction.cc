@@ -39,29 +39,61 @@ void PrimaryGeneratorAction::GenerateCs137Decay(G4Event* event)
     GenerateGamma662(event);
 }
 
+// 在半球拱顶房间内随机生成粒子
 void PrimaryGeneratorAction::GenerateGamma662(G4Event* event)
 {
     G4ParticleDefinition* gamma = G4ParticleTable::GetParticleTable()->FindParticle("gamma");
     
-    // 正常模式：在房间内随机位置
-    G4double x = (G4UniformRand() - 0.5) * 8.0 * m;
-    G4double y = (G4UniformRand() - 0.5) * 5.0 * m; 
-    G4double z = (G4UniformRand() - 0.5) * 3.0 * m;
+    G4double roomRadius = 5.0 * m;
+    G4double floorZ = - 0.1;  // 地面位置
     
-    // 随机方向
-    G4double phi = 2.0 * M_PI * G4UniformRand();
-    G4double cosTheta = 2.0 * G4UniformRand() - 1.0;
-    G4double sinTheta = std::sqrt(1.0 - cosTheta * cosTheta);
+    // 在半球拱顶房间体积内均匀生成粒子
+    G4double x, y, z;
+    G4bool positionValid = false;
     
-    G4ThreeVector direction(sinTheta * std::cos(phi), 
-                           sinTheta * std::sin(phi), 
-                           cosTheta);
+    while (!positionValid) {
+        // 在包围盒内随机生成
+        x = (2 * G4UniformRand() - 1) * roomRadius;
+        y = (2 * G4UniformRand() - 1) * roomRadius;
+        z = G4UniformRand() * (roomRadius) + floorZ;
+        
+        // 检查是否在房间体积内
+        G4double r_xy = sqrt(x*x + y*y);
+        
+        // 在半球拱顶部分
+        G4double domeZ = z - (floorZ);
+        if (r_xy*r_xy + domeZ*domeZ <= roomRadius*roomRadius) {
+            positionValid = true;
+        }
+        
+        // 确保在地面以上
+        if (z < floorZ + 0.01) {
+            positionValid = false;
+        }
+    }
+    
+    // 随机方向（4π立体角）
+    G4double dirTheta = acos(1 - 2 * G4UniformRand());
+    G4double dirPhi = 2.0 * M_PI * G4UniformRand();
+    
+    G4double dx = sin(dirTheta) * cos(dirPhi);
+    G4double dy = sin(dirTheta) * sin(dirPhi);
+    G4double dz = cos(dirTheta);
+    
+    G4ThreeVector direction(dx, dy, dz);
     
     particleGun->SetParticleDefinition(gamma);
     particleGun->SetParticleEnergy(662 * keV);
     particleGun->SetParticlePosition(G4ThreeVector(x, y, z));
     particleGun->SetParticleMomentumDirection(direction);
     particleGun->GeneratePrimaryVertex(event);
+    
+    // 输出调试信息
+    if (event->GetEventID() % 100 == 0) {
+        G4cout << "Event " << event->GetEventID() 
+               << ": Gamma at (" << x/m << ", " << y/m << ", " << z/m 
+               << ") m" << G4endl;
+    }
 }
 
 // 测试模式：固定位置直接射向探测器（保持不变）

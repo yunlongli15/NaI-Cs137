@@ -4,18 +4,22 @@
 #include "G4SDManager.hh"
 #include "G4MultiFunctionalDetector.hh"
 #include "G4PSEnergyDeposit.hh"
+#include "G4SubtractionSolid.hh"
+#include "G4UnionSolid.hh"
+#include "G4PhysicalConstants.hh"
 
 DetectorConstruction::DetectorConstruction()
 {
-    // 房间尺寸: 40平方米, 高度3米
-    roomSizeX = 8.0 * m;  // 8m x 5m = 40m²
-    roomSizeY = 5.0 * m;
-    roomSizeZ = 3.0 * m;
+    // 房间尺寸: 半径为5米的半球拱顶
+    roomRadius = 5.0 * m;
     
-    // NaI探测器尺寸: 3英寸直径 × 3英寸高度
-    naiRadius = 3.81 * cm;  // 3英寸 = 7.62cm直径 → 半径3.81cm
-    naiHeight = 7.62 * cm;  // 3英寸高度
-    canThickness = 2.0 * mm;  // 铝壳厚度
+    // 探测器离地面高度
+    floorLevel = 1.0 * m;  // 离地面1米
+    
+    // NaI探测器尺寸
+    naiRadius = 3.81 * cm;
+    naiHeight = 7.62 * cm;
+    canThickness = 2.0 * mm;
 }
 
 DetectorConstruction::~DetectorConstruction()
@@ -25,11 +29,9 @@ void DetectorConstruction::DefineMaterials()
 {
     G4NistManager* nist = G4NistManager::Instance();
     
-    // 空气
     air = nist->FindOrBuildMaterial("G4_AIR");
-    
-    // 铝 (外壳)
     aluminum = nist->FindOrBuildMaterial("G4_Al");
+    concrete = nist->FindOrBuildMaterial("G4_CONCRETE");
     
     // NaI(Tl) 晶体
     G4Element* na = nist->FindOrBuildElement("Na");
@@ -44,10 +46,32 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 {
     DefineMaterials();
     
-    // 世界体积 - 充满空气的房间
-    G4Box* worldSolid = new G4Box("World", roomSizeX/2, roomSizeY/2, roomSizeZ/2);
-    G4LogicalVolume* worldLog = new G4LogicalVolume(worldSolid, air, "World");
+    // 世界体积：半球拱顶
+    G4double worldRadius = roomRadius;
+    
+    // 创建半球拱顶部分
+    G4Sphere* domeSolid = new G4Sphere("DomePart",
+                                       0,
+                                       roomRadius,
+                                       0, 360*deg,     // phi范围
+                                       0, 90*deg);     // theta范围：上半球
+    
+    G4LogicalVolume* worldLog = new G4LogicalVolume(domeSolid, air, "World");
     worldPhys = new G4PVPlacement(0, G4ThreeVector(), worldLog, "World", 0, false, 0);
+    
+    // 创建地面（在圆柱底部）
+    G4double floorThickness = 20.0 * cm;
+    G4Tubs* floorSolid = new G4Tubs("Floor", 
+                                    0, 
+                                    worldRadius, 
+                                    floorThickness/2, 
+                                    0, 360*deg);
+    
+    G4LogicalVolume* floorLog = new G4LogicalVolume(floorSolid, concrete, "Floor");
+    G4double floorZ = - floorThickness/2;
+    new G4PVPlacement(0, 
+                     G4ThreeVector(0, 0, floorZ), 
+                     floorLog, "Floor", worldLog, false, 0);
     
     // NaI探测器铝外壳
     G4Tubs* canSolid = new G4Tubs("NaICan", 
@@ -57,8 +81,10 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
                                   0, 360*deg);
     G4LogicalVolume* canLog = new G4LogicalVolume(canSolid, aluminum, "NaICan");
     
-    // 将探测器放置在房间中心
-    new G4PVPlacement(0, G4ThreeVector(0, 0, 0), canLog, "NaICan", worldLog, false, 0);
+    // 将探测器放置在房间中心离地面1米高处
+    // 地面在 z = floorZ，所以探测器位置为：
+    G4double detectorZ = floorZ + floorThickness/2 + floorLevel + (naiHeight/2 + canThickness);
+    new G4PVPlacement(0, G4ThreeVector(0, 0, detectorZ), canLog, "NaICan", worldLog, false, 0);
     
     // NaI晶体
     G4Tubs* naiSolid = new G4Tubs("NaICrystal", 
@@ -69,19 +95,23 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     naiCrystalLog = new G4LogicalVolume(naiSolid, nai, "NaICrystal");
     new G4PVPlacement(0, G4ThreeVector(0, 0, 0), naiCrystalLog, "NaICrystal", canLog, false, 0);
     
+    G4cout << "=== Geometry Summary ===" << G4endl;
+    G4cout << "Room: Cylinder + Hemisphere dome, radius " << roomRadius/m << " m" << G4endl;
+    G4cout << "Floor position (Z): " << floorZ/m << " m" << G4endl;
+    G4cout << "Detector position (Z): " << detectorZ/m << " m" << G4endl;
+    G4cout << "Detector height above floor: " << floorLevel/m << " m" << G4endl;
+    G4cout << "=========================" << G4endl;
+    
     return worldPhys;
 }
 
 void DetectorConstruction::ConstructSDandField()
 {
-    // 创建灵敏探测器
     G4MultiFunctionalDetector* naiDetector = new G4MultiFunctionalDetector("NaIDetector");
     G4SDManager::GetSDMpointer()->AddNewDetector(naiDetector);
     
-    // 添加能量沉积记分器
     G4VPrimitiveScorer* energyDeposit = new G4PSEnergyDeposit("EnergyDeposit");
     naiDetector->RegisterPrimitive(energyDeposit);
     
-    // 将灵敏探测器附加到NaI晶体逻辑体积
     SetSensitiveDetector("NaICrystal", naiDetector);
 }
