@@ -2,10 +2,10 @@
 /gun/activityMode true
 
 # 设置活度浓度 (Bq/m³)
-/gun/cs137Activity 10.0
+/gun/cs137Activity 100.0
 
 # 设置模拟时间 (秒)
-/gun/simulationTime 60.0
+/gun/simulationTime 3720.0
 
 # 开始运行（事件数会自动计算）
 /run/beamOn

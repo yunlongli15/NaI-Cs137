@@ -8,7 +8,7 @@
 
 PrimaryGeneratorAction::PrimaryGeneratorAction()
  : cs137Activity(1.0),
-   roomVolume(120.0),  // 8×5×3 = 120 m³
+   roomVolume(261.8),  // 2/3*pi*5^3 = 261.8 m³
    testMode(false),
    activityMode(false),  // 默认关闭活度模式
    simulationTime(1.0)   // 默认1秒

@@ -1,0 +1,9 @@
+==================== RUN SUMMARY ====================
+ Number of events processed: 97390244
+ Total events with energy deposit: 6972
+ Total energy deposit in NaI: 3.26176 GeV
+ Average energy deposit per hit event: 467.837 keV
+ Average energy deposit per primary: 33.4917 eV 
+ Detection efficiency: 0.00715883 %
+=====================================================
+
