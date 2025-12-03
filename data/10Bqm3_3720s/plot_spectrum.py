@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # 读取数据（跳过注释行）
-df = pd.read_csv('build/nai_simulation_nt_GammaSpectrum.csv', comment='#', header=None, names=['EnergyDeposit', 'EventID', 'X', 'Y', 'Z'])
+df = pd.read_csv('nai_simulation_nt_GammaSpectrum.csv', comment='#', header=None, names=['EnergyDeposit', 'EventID', 'X', 'Y', 'Z'])
 
 # 提取能量沉积数据并转换为keV
 energy_mev = df['EnergyDeposit']
